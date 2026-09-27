@@ -1,0 +1,130 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f6f8;
+  color: #222;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 30px 20px;
+}
+
+header {
+  margin-bottom: 25px;
+}
+
+.card,
+.release-card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+input[type="text"],
+input[type="datetime-local"],
+textarea {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #222;
+  color: white;
+}
+
+.release-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.status {
+  height: fit-content;
+  padding: 6px 10px;
+  border-radius: 20px;
+  text-transform: capitalize;
+  font-size: 14px;
+}
+
+.status.planned {
+  background: #eee;
+}
+
+.status.ongoing {
+  background: #fff0c2;
+}
+
+.status.done {
+  background: #d7f5df;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.steps label {
+  cursor: pointer;
+}
+
+.steps input {
+  margin-right: 10px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.delete {
+  background: #c62828;
+}
+
+.info {
+  background: #f5f5f5;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 20px 12px;
+  }
+
+  .release-header {
+    flex-direction: column;
+  }
+}
