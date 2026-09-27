@@ -462,7 +462,7 @@ function App() {
 
 const client = new ApolloClient({
   link: new HttpLink({
-    uri: "http://localhost:4000/graphql",
+    uri: "https://release-checklist-362i.onrender.com/graphql",
   }),
   cache: new InMemoryCache(),
 });
