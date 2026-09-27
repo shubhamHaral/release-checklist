@@ -98,7 +98,8 @@ const DELETE_RELEASE = gql`
 `;
 
 function App() {
-  const { data, loading, error, refetch } = useQuery(GET_RELEASES);
+  const { data, loading, error, refetch } =
+    useQuery(GET_RELEASES);
 
   const [createRelease] = useMutation(CREATE_RELEASE);
   const [toggleStep] = useMutation(TOGGLE_STEP);
@@ -136,9 +137,27 @@ function App() {
         stepId,
         completed,
       },
-    });
+      update: (cache, { data }) => {
+        const updatedRelease = data?.toggleStep;
 
-    refetch();
+        if (!updatedRelease) return;
+
+        cache.modify({
+          id: cache.identify({
+            __typename: "Release",
+            id: releaseId,
+          }),
+          fields: {
+            status() {
+              return updatedRelease.status;
+            },
+            steps() {
+              return updatedRelease.steps;
+            },
+          },
+        });
+      },
+    });
   };
 
   const editInfo = async (release) => {
@@ -154,9 +173,24 @@ function App() {
         id: release.id,
         additionalInfo: value,
       },
-    });
+      update: (cache, { data }) => {
+        const updatedRelease = data?.updateRelease;
 
-    refetch();
+        if (!updatedRelease) return;
+
+        cache.modify({
+          id: cache.identify({
+            __typename: "Release",
+            id: release.id,
+          }),
+          fields: {
+            additionalInfo() {
+              return updatedRelease.additionalInfo;
+            },
+          },
+        });
+      },
+    });
   };
 
   const remove = async (id) => {
@@ -169,114 +203,259 @@ function App() {
     refetch();
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) {
+    return <div className="page-state">Loading releases...</div>;
+  }
 
   if (error) {
-    return <p>Unable to connect to API.</p>;
+    return (
+      <div className="page-state error-state">
+        Unable to connect to API.
+      </div>
+    );
   }
 
   return (
-    <div className="container">
-      <header>
-        <h1>Release Checklist</h1>
-        <p>Manage your software releases.</p>
-      </header>
+    <div className="app-shell">
 
-      <section className="card">
-        <h2>Create Release</h2>
+      {/* HEADER */}
+      <header className="topbar">
+        <div>
+          <div className="brand">
+            <div className="brand-icon">RC</div>
 
-        <form onSubmit={create}>
-          <input
-            type="text"
-            placeholder="Release name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-
-          <input
-            type="datetime-local"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
-
-          <textarea
-            placeholder="Additional information (optional)"
-            value={additionalInfo}
-            onChange={(e) => setAdditionalInfo(e.target.value)}
-          />
-
-          <button type="submit">Create Release</button>
-        </form>
-      </section>
-
-      <section>
-        <h2>Releases</h2>
-
-        {data.releases.length === 0 && (
-          <p>No releases yet.</p>
-        )}
-
-        {data.releases.map((release) => (
-          <div className="release-card" key={release.id}>
-            <div className="release-header">
-              <div>
-                <h3>{release.name}</h3>
-                <p>
-                  Due:{" "}
-                  {new Date(release.date).toLocaleString()}
-                </p>
-              </div>
-
-              <span className={`status ${release.status}`}>
-                {release.status}
-              </span>
-            </div>
-
-            {release.additionalInfo && (
-              <p className="info">
-                {release.additionalInfo}
-              </p>
-            )}
-
-            <div className="steps">
-              {release.steps.map((step) => (
-                <label key={step.id}>
-                  <input
-                    type="checkbox"
-                    checked={step.completed}
-                    onChange={(e) =>
-                      toggle(
-                        release.id,
-                        step.id,
-                        e.target.checked
-                      )
-                    }
-                  />
-
-                  {step.name}
-                </label>
-              ))}
-            </div>
-
-            <div className="actions">
-              <button
-                onClick={() => editInfo(release)}
-              >
-                Edit Info
-              </button>
-
-              <button
-                className="delete"
-                onClick={() => remove(release.id)}
-              >
-                Delete
-              </button>
+            <div>
+              <h1>Release Checklist</h1>
+              <p>Plan, track and manage software releases.</p>
             </div>
           </div>
-        ))}
-      </section>
+        </div>
+      </header>
+
+      <main className="content">
+
+        {/* CREATE RELEASE */}
+        <section className="create-card">
+          <div className="section-title">
+            <div>
+              <h2>Create Release</h2>
+              <p>Create a new release and track its checklist.</p>
+            </div>
+          </div>
+
+          <form onSubmit={create} className="release-form">
+
+            <div className="form-group">
+              <label>Release name</label>
+
+              <input
+                type="text"
+                placeholder="e.g. Version 2.0"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Due date</label>
+
+              <input
+                type="datetime-local"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Additional information</label>
+
+              <textarea
+                placeholder="Optional release notes..."
+                value={additionalInfo}
+                onChange={(e) =>
+                  setAdditionalInfo(e.target.value)
+                }
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="primary-button"
+            >
+              + Create Release
+            </button>
+
+          </form>
+        </section>
+
+        {/* RELEASE LIST */}
+        <section className="releases-section">
+
+          <div className="releases-heading">
+            <div>
+              <h2>Releases</h2>
+              <p>
+                {data.releases.length}{" "}
+                {data.releases.length === 1
+                  ? "release"
+                  : "releases"}
+              </p>
+            </div>
+          </div>
+
+          {data.releases.length === 0 && (
+            <div className="empty-state">
+              <h3>No releases yet</h3>
+              <p>
+                Create your first release using the form above.
+              </p>
+            </div>
+          )}
+
+          <div className="release-list">
+
+            {data.releases.map((release) => {
+
+              const completedCount =
+                release.steps.filter(
+                  (step) => step.completed
+                ).length;
+
+              const totalSteps = release.steps.length;
+
+              const progress =
+                totalSteps === 0
+                  ? 0
+                  : Math.round(
+                    (completedCount / totalSteps) * 100
+                  );
+
+              return (
+                <article
+                  className="release-card"
+                  key={release.id}
+                >
+
+                  {/* RELEASE HEADER */}
+                  <div className="release-top">
+
+                    <div>
+                      <div className="title-row">
+                        <h3>{release.name}</h3>
+
+                        <span
+                          className={`status ${release.status}`}
+                        >
+                          {release.status}
+                        </span>
+                      </div>
+
+                      <p className="due-date">
+                        Due:{" "}
+                        {new Date(
+                          release.date
+                        ).toLocaleString()}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* PROGRESS */}
+                  <div className="progress-section">
+
+                    <div className="progress-header">
+                      <span>Checklist progress</span>
+
+                      <strong>
+                        {completedCount}/{totalSteps}
+                      </strong>
+                    </div>
+
+                    <div className="progress-track">
+                      <div
+                        className="progress-fill"
+                        style={{
+                          width: `${progress}%`,
+                        }}
+                      />
+                    </div>
+
+                    <span className="progress-text">
+                      {progress}% completed
+                    </span>
+
+                  </div>
+
+                  {/* INFO */}
+                  {release.additionalInfo && (
+                    <div className="info-box">
+                      <span>Release information</span>
+                      <p>{release.additionalInfo}</p>
+                    </div>
+                  )}
+
+                  {/* CHECKLIST */}
+                  <div className="checklist">
+
+                    {release.steps.map((step) => (
+                      <label
+                        className={`check-item ${step.completed
+                          ? "completed"
+                          : ""
+                          }`}
+                        key={step.id}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={step.completed}
+                          onChange={(e) =>
+                            toggle(
+                              release.id,
+                              step.id,
+                              e.target.checked
+                            )
+                          }
+                        />
+
+                        <span>{step.name}</span>
+                      </label>
+                    ))}
+
+                  </div>
+
+                  {/* ACTIONS */}
+                  <div className="release-actions">
+
+                    <button
+                      className="edit-button"
+                      onClick={() =>
+                        editInfo(release)
+                      }
+                    >
+                      Edit Info
+                    </button>
+
+                    <button
+                      className="delete-button"
+                      onClick={() =>
+                        remove(release.id)
+                      }
+                    >
+                      Delete
+                    </button>
+
+                  </div>
+
+                </article>
+              );
+            })}
+
+          </div>
+        </section>
+
+      </main>
     </div>
   );
 }
